@@ -25,6 +25,8 @@ struct PartialSheet: ViewModifier {
     
     /// The offset for the drag gesture
     @State var dragOffset: CGFloat = 0
+    
+    @GestureState var isDetectingDrag: Bool = false
 
     /// The rect containing the presenter
     @State private var presenterContentRect: CGRect = .zero
@@ -61,7 +63,7 @@ struct PartialSheet: ViewModifier {
     private var sheetPosition: CGFloat {
         if self.manager.isPresented {
             let topInset = safeAreaInsets.top
-            let position = self.topAnchor + self.dragOffset - self.keyboardOffset
+            let position = self.topAnchor + self.dragOffset
             
             if position < topInset {
                 return topInset
@@ -78,11 +80,12 @@ struct PartialSheet: ViewModifier {
         switch deviceType {
         case .iphone:
             switch iPhoneStyle.background {
-            case .solid(let color): Rectangle().fill(color)
+            case .solid(let color): color
             case .blur(let effect): Rectangle().fill(effect)
+            case .gradient(let gradient): gradient
             }
         default:
-            Rectangle().fill(iPadMacStyle.backgroundColor)
+            iPadMacStyle.backgroundColor
         }
     }
     
@@ -248,6 +251,13 @@ extension PartialSheet {
                 .offset(y: self.sheetPosition)
                 .onTapGesture {}
                 .gesture(manager.isPresented ? drag : nil)
+                .onChange(of: isDetectingDrag) { newValue in
+                    if newValue == false {
+                        withAnimation(manager.slideAnimation.defaultSlideAnimation) {
+                            dragOffset = 0
+                        }
+                    }
+                }
             }
         }
     }
